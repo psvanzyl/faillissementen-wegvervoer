@@ -24,8 +24,8 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
 
 ## Excel-export
 - Nextcloud: `nextcloud:projects/faillissementen-wegvervoer/faillissementen_sbi49_data.xlsx`
-  (142.498 bytes, md5 `4945e86f5624ac10f21638224c143dd1`) — lokaal in `data/`.
-- 11 sheets: Toelichting · Faillissementen (866 rijen, A1:P867, autofilter) · Site vs CBS ·
+  (147.319 bytes, md5 `c5f89f7a34d65ae8e0cee6e7621d4d50`) — lokaal in `data/`.
+- 11 sheets: Toelichting · Faillissementen (866 rijen, **A1:Q867**, autofilter) · Site vs CBS ·
   CBS jaar · CBS maand · Dieselprijs · Dieselprijs jaar · Provincies · Top 30 plaatsen ·
   Rechtsvormen · Site per jaar. 4 grafieken, `full_calc_on_load`.
 - Bouw: spec `~/.hermes/cache/scratch/workbook_spec.json`, script `skill xlsx/scripts/xlsx_create.py`,
@@ -34,6 +34,28 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   afgekapte waarden). Gebruik altijd de bucket voor de MKB/groot-indeling, nooit rv_clean.
 - Mojibake (30 curatornamen, enkele plaatsen) bij export hersteld via latin-1→utf-8.
 - Let op: de opstart-kernel van execute_code heeft GÉÉN openpyxl — draai skill-scripts via `terminal`.
+- Kolom Q `Naam afgekapt?` markeert 111 records waarvan de bedrijfsnaam onvolledig is.
+
+### Bekende datadefecten (eerlijk gedocumenteerd in blad Toelichting)
+- **111 van 866 records hebben een afgekapte bedrijfsnaam** (kolom Q = `ja`).
+  Dit is een fout in de oorspronkelijke oogst, niet in de bron. Bewijs: detailpagina van
+  KvK 27196576 toont `R Hoekstra (inter)nationaal Transport`, de dataset heeft
+  `R Hoekstra (inter)nationa`. Detectie: naam korter dan de URL-slug, plus namen met `...`.
+  4 records zijn in de BRON zelf afgekapt (o.a. KvK 84099747 -> letterlijk `De...`).
+- **499 records hebben een afgekapte activiteitomschrijving IN DE BRON**
+  (`Goederenvervoer over weg (geen verhuiz.).`). Niet te repareren door opnieuw op te halen;
+  de SBI-code is wel compleet. Alle 499 zitten onder code `4941`.
+- **faillissementen.com rate-limit de box-IP.** Symptoom: **HTTP 200** met een stub-body
+  van 50 bytes: `5) Limit reached, contact info@faillissementen.com`. Dit is géén 429 en
+  géén exception — een parser die alleen op HTTP-status let, ziet een "geslaagde" lege pagina.
+  Herstel: `reharvest_names.py` faalt nu hard op stub-bodies; wacht met her-oogsten tot de
+  limiet is opgeheven (cooldown), en doseer met vertraging tussen requests.
+- **Autoritatieve velden op een detailpagina:** JSON-LD `Organization.name` = volledige
+  bedrijfsnaam; JSON-LD `WebPage.datePublished` = datum; het `detail-seo__fact`-blok geeft
+  Status, KvK-nummer, Adres, Postcode, Plaats, Rechtbank, Insolventienummer, Curator.
+  SBI/activiteit/rechtsvorm/provincie staan NIET op de detailpagina.
+- Her-oogst-script: `~/.hermes/cache/scratch/reharvest_names.py` (refresh van naam/curator/
+  plaats/adres; behoudt sbi5/rechtsvorm/provincie). Draai pas na cooldown.
 
 ## Key findings
 - **faillissementen.com is onvolledig (~40%)**: site 866 over 2005–2026 vs CBS 2009–2025 veelvoud.
