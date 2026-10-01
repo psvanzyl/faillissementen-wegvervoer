@@ -146,6 +146,11 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
 - Wil je toch officiele historie op zaakniveau: `cir_harvest.py` dagelijks draaien en laten accumuleren.
 
 ## Gotchas / lessons
+- **NOOIT `rclone sync` naar `nextcloud:projects/faillissementen-wegvervoer/`.** Die map bevat ook
+  `cir-archief/`, dat door de dagelijkse cron wordt gevuld en **niet** in de lokale repo staat.
+  `rclone sync` verwijdert alles op de remote dat lokaal ontbreekt -> het archief werd gewist
+  (2026-10-01, hersteld met `rclone copy`). Gebruik altijd **`rclone copy`**, of sluit
+  `--exclude "cir-archief/**"` expliciet uit.
 - **CBS maandperioden** zijn `YYYYMMnn` — de maand staat op positie 6-7 (`p[6:8]`), NIET `p[4:6]` (dat is de letterlijke "MM").
 - **`82244NED/Observations`** levert >100k rijen gepagineerd; filter met `$filter=BedrijfstakkenBranchesSBI2008 eq '383200'`.
   Resultaten altijd in `{"value":[...]}`.
