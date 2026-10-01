@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Faillissementen wegvervoer (SBI 49) vs dieselprijs</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121a23; --panel2:#0f161e; --line:#22303d;
+    --fg:#e6edf3; --muted:#8b9cad; --accent:#4cc9f0; --accent2:#f72585;
+    --amber:#ffb703; --green:#43aa8b; --violet:#9d4edd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:28px 26px 18px;border-bottom:1px solid var(--line);
+         background:linear-gradient(180deg,#101922 0%,#0b0f14 100%)}
+  h1{margin:0 0 6px;font-size:23px;letter-spacing:.2px}
+  h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .sub{color:var(--muted);font-size:13px;max-width:1000px}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px 26px 60px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;margin:20px 0 24px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+  .kpi .v{font-size:26px;font-weight:650;margin-top:5px}
+  .kpi .n{color:var(--muted);font-size:11.5px;margin-top:3px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .card.full{grid-column:1/-1}
+  .card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .card .note{color:var(--muted);font-size:12px;margin:2px 0 10px}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  button{background:var(--panel2);color:var(--muted);border:1px solid var(--line);
+         border-radius:7px;padding:5px 11px;font-size:12px;cursor:pointer;transition:.15s}
+  button:hover{color:var(--fg);border-color:#33475a}
+  button.on{background:#16323f;color:var(--accent);border-color:#2b6178;font-weight:600}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px}
+  .warn{background:#241a10;border:1px solid #5c421a;color:#f0c48a;border-radius:9px;
+        padding:13px 16px;font-size:13px;margin-top:18px}
+  .warn b{color:#ffd9a3}
+  footer{color:var(--muted);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+  .tt{position:fixed;pointer-events:none;background:#0a1219;border:1px solid #2b3d4d;
+      border-radius:7px;padding:8px 11px;font-size:12.5px;color:var(--fg);opacity:0;transition:opacity .12s;z-index:99;white-space:nowrap}
+  @media(max-width:840px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Faillissementen in het wegvervoer vs. de dieselprijs</h1>
+  <div class="sub">
+    Branchecode <b>49 — Vervoer over land</b> · alleen <b>faillietverklaringen</b> (status = <i>Faillissement</i>, exclusief surseance en schuldsanering) ·
+    bron faillissementen: <b>faillissementen.com</b> + <b>CBS 82244NED</b> · dieselprijs: <b>CBS 81567NED</b> (gemiddelde pompprijs, incl. accijns &amp; btw)
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card full">
+    <div class="hd">
+      <div>
+        <h2>Faillietverklaringen per jaar &amp; dieselprijs</h2>
+        <div class="note" id="annualNote"></div>
+      </div>
+      <div class="btns" id="annualBtns"></div>
+    </div>
+    <svg id="cAnnual" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend" id="legAnnual"></div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <div class="hd"><div><h2>MKB vs. grotere vennootschappen</h2>
+        <div class="note">Naar rechtsvorm — proxy voor bedrijfsgrootte</div></div></div>
+      <svg id="cSize" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend" id="legSize"></div>
+    </div>
+
+    <div class="card">
+      <div class="hd"><div><h2>Waar zit het bedrijf (zetel)?</h2>
+        <div class="note">Per provincie, afgeleid van de postcode</div></div></div>
+      <svg id="cProv" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card">
+      <div class="hd"><div><h2>Maandelijkse trend</h2>
+        <div class="note">CBS uitgesproken faillissementen, SBI 49</div></div></div>
+      <svg id="cMonth" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card">
+      <div class="hd"><div><h2>Top-15 vestigingsplaatsen</h2>
+        <div class="note">Zetel van de gefailleerde onderneming</div></div></div>
+      <svg id="cCity" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card full">
+      <div class="hd"><div><h2>Sub-branches binnen SBI 49</h2>
+        <div class="note">Op basis van de 5-cijferige SBI-hoofdactiviteit</div></div></div>
+      <svg id="cSub" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+  <div class="warn" id="quality"></div>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="tt" id="tt"></div>
+<script>
+const DATA = {"meta":{"title":"Faillissementen wegvervoer (SBI 49) vs dieselprijs","source_bankruptcies":"faillissementen.com — filter status=Faillissement, branchecode 49 (Vervoer over land)","source_cbs":"CBS 82244NED — Uitgesproken faillissementen, SBI 49 Vervoer over land","source_diesel":"CBS 81567NED — Gemiddelde pompprijs diesel (incl. accijns & btw)","generated":"2026-10-01","site_total":866,"site_first":"15-04-2005","site_last":"01-10-2026"},"cbs_annual":{"2009":{"total":253.0,"ea":36.0,"bedrijven":217.0},"2010":{"total":242.0,"ea":16.0,"bedrijven":226.0},"2011":{"total":199.0,"ea":24.0,"bedrijven":175.0},"2012":{"total":285.0,"ea":46.0,"bedrijven":239.0},"2013":{"total":253.0,"ea":33.0,"bedrijven":220.0},"2014":{"total":215.0,"ea":28.0,"bedrijven":187.0},"2015":{"total":164.0,"ea":24.0,"bedrijven":140.0},"2016":{"total":118.0,"ea":10.0,"bedrijven":108.0},"2017":{"total":119.0,"ea":15.0,"bedrijven":104.0},"2018":{"total":117.0,"ea":17.0,"bedrijven":100.0},"2019":{"total":122.0,"ea":14.0,"bedrijven":108.0},"2020":{"total":134.0,"ea":10.0,"bedrijven":124.0},"2021":{"total":77.0,"ea":19.0,"bedrijven":58.0},"2022":{"total":82.0,"ea":10.0,"bedrijven":72.0},"2023":{"total":137.0,"ea":25.0,"bedrijven":112.0},"2024":{"total":185.0,"ea":19.0,"bedrijven":166.0},"2025":{"total":142.0,"ea":24.0,"bedrijven":118.0}},"cbs_monthly":{"2009-01":{"total":14.0,"ea":3.0,"bedrijven":11.0},"2009-02":{"total":11.0,"ea":0.0,"bedrijven":11.0},"2009-03":{"total":29.0,"ea":4.0,"bedrijven":25.0},"2009-04":{"total":15.0,"ea":1.0,"bedrijven":14.0},"2009-05":{"total":22.0,"ea":6.0,"bedrijven":16.0},"2009-06":{"total":28.0,"ea":2.0,"bedrijven":26.0},"2009-07":{"total":22.0,"ea":3.0,"bedrijven":19.0},"2009-08":{"total":31.0,"ea":4.0,"bedrijven":27.0},"2009-09":{"total":23.0,"ea":6.0,"bedrijven":17.0},"2009-10":{"total":16.0,"ea":2.0,"bedrijven":14.0},"2009-11":{"total":21.0,"ea":4.0,"bedrijven":17.0},"2009-12":{"total":21.0,"ea":1.0,"bedrijven":20.0},"2010-01":{"total":26.0,"ea":3.0,"bedrijven":23.0},"2010-02":{"total":25.0,"ea":2.0,"bedrijven":23.0},"2010-03":{"total":20.0,"ea":1.0,"bedrijven":19.0},"2010-04":{"total":19.0,"ea":2.0,"bedrijven":17.0},"2010-05":{"total":15.0,"ea":1.0,"bedrijven":14.0},"2010-06":{"total":37.0,"ea":1.0,"bedrijven":36.0},"2010-07":{"total":13.0,"ea":0.0,"bedrijven":13.0},"2010-08":{"total":18.0,"ea":1.0,"bedrijven":17.0},"2010-09":{"total":13.0,"ea":0.0,"bedrijven":13.0},"2010-10":{"total":17.0,"ea":2.0,"bedrijven":15.0},"2010-11":{"total":22.0,"ea":1.0,"bedrijven":21.0},"2010-12":{"total":17.0,"ea":2.0,"bedrijven":15.0},"2011-01":{"total":22.0,"ea":0.0,"bedrijven":22.0},"2011-02":{"total":19.0,"ea":3.0,"bedrijven":16.0},"2011-03":{"total":15.0,"ea":3.0,"bedrijven":12.0},"2011-04":{"total":19.0,"ea":1.0,"bedrijven":18.0},"2011-05":{"total":24.0,"ea":6.0,"bedrijven":18.0},"2011-06":{"total":8.0,"ea":1.0,"bedrijven":7.0},"2011-07":{"total":16.0,"ea":2.0,"bedrijven":14.0},"2011-08":{"total":12.0,"ea":2.0,"bedrijven":10.0},"2011-09":{"total":17.0,"ea":1.0,"bedrijven":16.0},"2011-10":{"total":12.0,"ea":1.0,"bedrijven":11.0},"2011-11":{"total":22.0,"ea":3.0,"bedrijven":19.0},"2011-12":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2012-01":{"total":30.0,"ea":4.0,"bedrijven":26.0},"2012-02":{"total":20.0,"ea":6.0,"bedrijven":14.0},"2012-03":{"total":24.0,"ea":7.0,"bedrijven":17.0},"2012-04":{"total":5.0,"ea":1.0,"bedrijven":4.0},"2012-05":{"total":20.0,"ea":1.0,"bedrijven":19.0},"2012-06":{"total":26.0,"ea":2.0,"bedrijven":24.0},"2012-07":{"total":25.0,"ea":6.0,"bedrijven":19.0},"2012-08":{"total":22.0,"ea":3.0,"bedrijven":19.0},"2012-09":{"total":31.0,"ea":5.0,"bedrijven":26.0},"2012-10":{"total":31.0,"ea":5.0,"bedrijven":26.0},"2012-11":{"total":25.0,"ea":4.0,"bedrijven":21.0},"2012-12":{"total":26.0,"ea":2.0,"bedrijven":24.0},"2013-01":{"total":31.0,"ea":4.0,"bedrijven":27.0},"2013-02":{"total":17.0,"ea":3.0,"bedrijven":14.0},"2013-03":{"total":27.0,"ea":5.0,"bedrijven":22.0},"2013-04":{"total":17.0,"ea":2.0,"bedrijven":15.0},"2013-05":{"total":24.0,"ea":1.0,"bedrijven":23.0},"2013-06":{"total":17.0,"ea":2.0,"bedrijven":15.0},"2013-07":{"total":19.0,"ea":3.0,"bedrijven":16.0},"2013-08":{"total":17.0,"ea":5.0,"bedrijven":12.0},"2013-09":{"total":25.0,"ea":3.0,"bedrijven":22.0},"2013-10":{"total":26.0,"ea":4.0,"bedrijven":22.0},"2013-11":{"total":17.0,"ea":1.0,"bedrijven":16.0},"2013-12":{"total":16.0,"ea":0.0,"bedrijven":16.0},"2014-01":{"total":19.0,"ea":3.0,"bedrijven":16.0},"2014-02":{"total":26.0,"ea":3.0,"bedrijven":23.0},"2014-03":{"total":15.0,"ea":3.0,"bedrijven":12.0},"2014-04":{"total":23.0,"ea":1.0,"bedrijven":22.0},"2014-05":{"total":23.0,"ea":4.0,"bedrijven":19.0},"2014-06":{"total":18.0,"ea":0.0,"bedrijven":18.0},"2014-07":{"total":17.0,"ea":4.0,"bedrijven":13.0},"2014-08":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2014-09":{"total":9.0,"ea":0.0,"bedrijven":9.0},"2014-10":{"total":18.0,"ea":1.0,"bedrijven":17.0},"2014-11":{"total":20.0,"ea":2.0,"bedrijven":18.0},"2014-12":{"total":16.0,"ea":5.0,"bedrijven":11.0},"2015-01":{"total":6.0,"ea":1.0,"bedrijven":5.0},"2015-02":{"total":17.0,"ea":1.0,"bedrijven":16.0},"2015-03":{"total":22.0,"ea":2.0,"bedrijven":20.0},"2015-04":{"total":8.0,"ea":3.0,"bedrijven":5.0},"2015-05":{"total":24.0,"ea":2.0,"bedrijven":22.0},"2015-06":{"total":19.0,"ea":3.0,"bedrijven":16.0},"2015-07":{"total":16.0,"ea":3.0,"bedrijven":13.0},"2015-08":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2015-09":{"total":15.0,"ea":4.0,"bedrijven":11.0},"2015-10":{"total":7.0,"ea":0.0,"bedrijven":7.0},"2015-11":{"total":15.0,"ea":2.0,"bedrijven":13.0},"2015-12":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2016-01":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2016-02":{"total":19.0,"ea":2.0,"bedrijven":17.0},"2016-03":{"total":16.0,"ea":1.0,"bedrijven":15.0},"2016-04":{"total":5.0,"ea":1.0,"bedrijven":4.0},"2016-05":{"total":9.0,"ea":0.0,"bedrijven":9.0},"2016-06":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2016-07":{"total":11.0,"ea":1.0,"bedrijven":10.0},"2016-08":{"total":5.0,"ea":0.0,"bedrijven":5.0},"2016-09":{"total":4.0,"ea":1.0,"bedrijven":3.0},"2016-10":{"total":5.0,"ea":0.0,"bedrijven":5.0},"2016-11":{"total":14.0,"ea":0.0,"bedrijven":14.0},"2016-12":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2017-01":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2017-02":{"total":6.0,"ea":0.0,"bedrijven":6.0},"2017-03":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2017-04":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2017-05":{"total":18.0,"ea":0.0,"bedrijven":18.0},"2017-06":{"total":5.0,"ea":0.0,"bedrijven":5.0},"2017-07":{"total":4.0,"ea":1.0,"bedrijven":3.0},"2017-08":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2017-09":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2017-10":{"total":14.0,"ea":4.0,"bedrijven":10.0},"2017-11":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2017-12":{"total":12.0,"ea":1.0,"bedrijven":11.0},"2018-01":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2018-02":{"total":13.0,"ea":2.0,"bedrijven":11.0},"2018-03":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2018-04":{"total":9.0,"ea":2.0,"bedrijven":7.0},"2018-05":{"total":14.0,"ea":1.0,"bedrijven":13.0},"2018-06":{"total":4.0,"ea":2.0,"bedrijven":2.0},"2018-07":{"total":9.0,"ea":0.0,"bedrijven":9.0},"2018-08":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2018-09":{"total":10.0,"ea":3.0,"bedrijven":7.0},"2018-10":{"total":12.0,"ea":1.0,"bedrijven":11.0},"2018-11":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2018-12":{"total":8.0,"ea":0.0,"bedrijven":8.0},"2019-01":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2019-02":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2019-03":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2019-04":{"total":14.0,"ea":0.0,"bedrijven":14.0},"2019-05":{"total":13.0,"ea":2.0,"bedrijven":11.0},"2019-06":{"total":6.0,"ea":0.0,"bedrijven":6.0},"2019-07":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2019-08":{"total":11.0,"ea":0.0,"bedrijven":11.0},"2019-09":{"total":12.0,"ea":3.0,"bedrijven":9.0},"2019-10":{"total":15.0,"ea":2.0,"bedrijven":13.0},"2019-11":{"total":10.0,"ea":0.0,"bedrijven":10.0},"2019-12":{"total":7.0,"ea":2.0,"bedrijven":5.0},"2020-01":{"total":14.0,"ea":2.0,"bedrijven":12.0},"2020-02":{"total":36.0,"ea":1.0,"bedrijven":35.0},"2020-03":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2020-04":{"total":10.0,"ea":0.0,"bedrijven":10.0},"2020-05":{"total":6.0,"ea":0.0,"bedrijven":6.0},"2020-06":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2020-07":{"total":4.0,"ea":0.0,"bedrijven":4.0},"2020-08":{"total":5.0,"ea":0.0,"bedrijven":5.0},"2020-09":{"total":14.0,"ea":1.0,"bedrijven":13.0},"2020-10":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2020-11":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2020-12":{"total":7.0,"ea":0.0,"bedrijven":7.0},"2021-01":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2021-02":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2021-03":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2021-04":{"total":7.0,"ea":2.0,"bedrijven":5.0},"2021-05":{"total":10.0,"ea":3.0,"bedrijven":7.0},"2021-06":{"total":6.0,"ea":2.0,"bedrijven":4.0},"2021-07":{"total":1.0,"ea":0.0,"bedrijven":1.0},"2021-08":{"total":2.0,"ea":0.0,"bedrijven":2.0},"2021-09":{"total":4.0,"ea":1.0,"bedrijven":3.0},"2021-10":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2021-11":{"total":7.0,"ea":2.0,"bedrijven":5.0},"2021-12":{"total":6.0,"ea":2.0,"bedrijven":4.0},"2022-01":{"total":4.0,"ea":1.0,"bedrijven":3.0},"2022-02":{"total":5.0,"ea":0.0,"bedrijven":5.0},"2022-03":{"total":5.0,"ea":1.0,"bedrijven":4.0},"2022-04":{"total":7.0,"ea":2.0,"bedrijven":5.0},"2022-05":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2022-06":{"total":8.0,"ea":1.0,"bedrijven":7.0},"2022-07":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2022-08":{"total":2.0,"ea":0.0,"bedrijven":2.0},"2022-09":{"total":6.0,"ea":0.0,"bedrijven":6.0},"2022-10":{"total":4.0,"ea":0.0,"bedrijven":4.0},"2022-11":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2022-12":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2023-01":{"total":15.0,"ea":1.0,"bedrijven":14.0},"2023-02":{"total":10.0,"ea":2.0,"bedrijven":8.0},"2023-03":{"total":9.0,"ea":4.0,"bedrijven":5.0},"2023-04":{"total":14.0,"ea":3.0,"bedrijven":11.0},"2023-05":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2023-06":{"total":7.0,"ea":1.0,"bedrijven":6.0},"2023-07":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2023-08":{"total":11.0,"ea":1.0,"bedrijven":10.0},"2023-09":{"total":10.0,"ea":2.0,"bedrijven":8.0},"2023-10":{"total":14.0,"ea":4.0,"bedrijven":10.0},"2023-11":{"total":13.0,"ea":2.0,"bedrijven":11.0},"2023-12":{"total":11.0,"ea":3.0,"bedrijven":8.0},"2024-01":{"total":20.0,"ea":1.0,"bedrijven":19.0},"2024-02":{"total":11.0,"ea":0.0,"bedrijven":11.0},"2024-03":{"total":19.0,"ea":5.0,"bedrijven":14.0},"2024-04":{"total":19.0,"ea":3.0,"bedrijven":16.0},"2024-05":{"total":21.0,"ea":0.0,"bedrijven":21.0},"2024-06":{"total":13.0,"ea":0.0,"bedrijven":13.0},"2024-07":{"total":17.0,"ea":2.0,"bedrijven":15.0},"2024-08":{"total":20.0,"ea":2.0,"bedrijven":18.0},"2024-09":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2024-10":{"total":19.0,"ea":1.0,"bedrijven":18.0},"2024-11":{"total":5.0,"ea":2.0,"bedrijven":3.0},"2024-12":{"total":11.0,"ea":2.0,"bedrijven":9.0},"2025-01":{"total":14.0,"ea":2.0,"bedrijven":12.0},"2025-02":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2025-03":{"total":12.0,"ea":2.0,"bedrijven":10.0},"2025-04":{"total":15.0,"ea":5.0,"bedrijven":10.0},"2025-05":{"total":8.0,"ea":1.0,"bedrijven":7.0},"2025-06":{"total":9.0,"ea":1.0,"bedrijven":8.0},"2025-07":{"total":18.0,"ea":1.0,"bedrijven":17.0},"2025-08":{"total":8.0,"ea":1.0,"bedrijven":7.0},"2025-09":{"total":13.0,"ea":3.0,"bedrijven":10.0},"2025-10":{"total":8.0,"ea":2.0,"bedrijven":6.0},"2025-11":{"total":18.0,"ea":4.0,"bedrijven":14.0},"2025-12":{"total":10.0,"ea":1.0,"bedrijven":9.0},"2026-01":{"total":13.0,"ea":2.0,"bedrijven":11.0},"2026-02":{"total":11.0,"ea":0.0,"bedrijven":11.0},"2026-03":{"total":18.0,"ea":5.0,"bedrijven":13.0},"2026-04":{"total":16.0,"ea":2.0,"bedrijven":14.0},"2026-05":{"total":13.0,"ea":1.0,"bedrijven":12.0},"2026-06":{"total":17.0,"ea":5.0,"bedrijven":12.0},"2026-07":{"total":9.0,"ea":0.0,"bedrijven":9.0},"2026-08":{"total":5.0,"ea":0.0,"bedrijven":5.0}},"site_annual":[{"year":"2005","n":11,"Eenmanszaak":3,"VOF":6,"CV":1,"BV":0,"NV":0,"Buitenlands":0,"Overig/Onbekend":1},{"year":"2006","n":9,"Eenmanszaak":5,"VOF":1,"CV":0,"BV":3,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2007","n":4,"Eenmanszaak":2,"VOF":1,"CV":0,"BV":1,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2008","n":7,"Eenmanszaak":4,"VOF":0,"CV":0,"BV":2,"NV":0,"Buitenlands":0,"Overig/Onbekend":1},{"year":"2009","n":21,"Eenmanszaak":6,"VOF":3,"CV":2,"BV":10,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2010","n":24,"Eenmanszaak":3,"VOF":7,"CV":1,"BV":12,"NV":0,"Buitenlands":0,"Overig/Onbekend":1},{"year":"2011","n":46,"Eenmanszaak":7,"VOF":0,"CV":0,"BV":37,"NV":0,"Buitenlands":0,"Overig/Onbekend":2},{"year":"2012","n":79,"Eenmanszaak":4,"VOF":15,"CV":0,"BV":58,"NV":0,"Buitenlands":1,"Overig/Onbekend":1},{"year":"2013","n":35,"Eenmanszaak":12,"VOF":12,"CV":0,"BV":11,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2014","n":33,"Eenmanszaak":6,"VOF":9,"CV":3,"BV":15,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2015","n":19,"Eenmanszaak":8,"VOF":5,"CV":0,"BV":6,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2016","n":14,"Eenmanszaak":4,"VOF":6,"CV":1,"BV":3,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2017","n":11,"Eenmanszaak":2,"VOF":2,"CV":0,"BV":7,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2018","n":9,"Eenmanszaak":3,"VOF":2,"CV":0,"BV":4,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2019","n":25,"Eenmanszaak":5,"VOF":6,"CV":1,"BV":13,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2020","n":40,"Eenmanszaak":3,"VOF":2,"CV":0,"BV":35,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2021","n":22,"Eenmanszaak":3,"VOF":0,"CV":0,"BV":19,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2022","n":23,"Eenmanszaak":2,"VOF":4,"CV":0,"BV":15,"NV":0,"Buitenlands":0,"Overig/Onbekend":2},{"year":"2023","n":57,"Eenmanszaak":5,"VOF":3,"CV":0,"BV":47,"NV":0,"Buitenlands":1,"Overig/Onbekend":1},{"year":"2024","n":80,"Eenmanszaak":8,"VOF":4,"CV":0,"BV":68,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2025","n":117,"Eenmanszaak":11,"VOF":15,"CV":0,"BV":91,"NV":0,"Buitenlands":0,"Overig/Onbekend":0},{"year":"2026","n":180,"Eenmanszaak":20,"VOF":17,"CV":2,"BV":140,"NV":0,"Buitenlands":0,"Overig/Onbekend":1}],"diesel_annual":{"2006":1.043,"2007":1.059,"2008":1.241,"2009":1.013,"2010":1.17,"2011":1.348,"2012":1.444,"2013":1.421,"2014":1.401,"2015":1.231,"2016":1.133,"2017":1.221,"2018":1.335,"2019":1.356,"2020":1.237,"2021":1.461,"2022":1.955,"2023":1.712,"2024":1.723,"2025":1.692,"2026":2.163},"diesel_monthly":{"2006-01":1.018,"2006-02":1.02,"2006-03":1.045,"2006-04":1.078,"2006-05":1.073,"2006-06":1.079,"2006-07":1.085,"2006-08":1.091,"2006-09":1.027,"2006-10":1.011,"2006-11":0.996,"2006-12":0.995,"2007-01":0.97,"2007-02":0.99,"2007-03":1.006,"2007-04":1.031,"2007-05":1.032,"2007-06":1.053,"2007-07":1.063,"2007-08":1.052,"2007-09":1.081,"2007-10":1.095,"2007-11":1.186,"2007-12":1.153,"2008-01":1.146,"2008-02":1.169,"2008-03":1.232,"2008-04":1.26,"2008-05":1.372,"2008-06":1.399,"2008-07":1.423,"2008-08":1.322,"2008-09":1.292,"2008-10":1.196,"2008-11":1.103,"2008-12":0.979,"2009-01":0.978,"2009-02":0.973,"2009-03":0.96,"2009-04":0.978,"2009-05":0.985,"2009-06":1.035,"2009-07":1.015,"2009-08":1.05,"2009-09":1.022,"2009-10":1.042,"2009-11":1.058,"2009-12":1.056,"2010-01":1.098,"2010-02":1.097,"2010-03":1.139,"2010-04":1.182,"2010-05":1.189,"2010-06":1.191,"2010-07":1.168,"2010-08":1.168,"2010-09":1.177,"2010-10":1.184,"2010-11":1.2,"2010-12":1.251,"2011-01":1.288,"2011-02":1.313,"2011-03":1.363,"2011-04":1.377,"2011-05":1.342,"2011-06":1.334,"2011-07":1.348,"2011-08":1.327,"2011-09":1.349,"2011-10":1.361,"2011-11":1.393,"2011-12":1.38,"2012-01":1.421,"2012-02":1.432,"2012-03":1.457,"2012-04":1.453,"2012-05":1.428,"2012-06":1.383,"2012-07":1.408,"2012-08":1.458,"2012-09":1.474,"2012-10":1.491,"2012-11":1.476,"2012-12":1.446,"2013-01":1.451,"2013-02":1.472,"2013-03":1.449,"2013-04":1.415,"2013-05":1.39,"2013-06":1.394,"2013-07":1.418,"2013-08":1.426,"2013-09":1.437,"2013-10":1.406,"2013-11":1.387,"2013-12":1.404,"2014-01":1.431,"2014-02":1.434,"2014-03":1.416,"2014-04":1.423,"2014-05":1.426,"2014-06":1.433,"2014-07":1.424,"2014-08":1.418,"2014-09":1.415,"2014-10":1.374,"2014-11":1.358,"2014-12":1.263,"2015-01":1.194,"2015-02":1.254,"2015-03":1.287,"2015-04":1.283,"2015-05":1.31,"2015-06":1.301,"2015-07":1.265,"2015-08":1.191,"2015-09":1.191,"2015-10":1.184,"2015-11":1.192,"2015-12":1.116,"2016-01":1.048,"2016-02":1.041,"2016-03":1.09,"2016-04":1.093,"2016-05":1.137,"2016-06":1.17,"2016-07":1.136,"2016-08":1.121,"2016-09":1.149,"2016-10":1.193,"2016-11":1.186,"2016-12":1.238,"2017-01":1.246,"2017-02":1.247,"2017-03":1.225,"2017-04":1.233,"2017-05":1.191,"2017-06":1.161,"2017-07":1.17,"2017-08":1.191,"2017-09":1.221,"2017-10":1.237,"2017-11":1.264,"2017-12":1.264,"2018-01":1.292,"2018-02":1.254,"2018-03":1.26,"2018-04":1.301,"2018-05":1.36,"2018-06":1.362,"2018-07":1.356,"2018-08":1.359,"2018-09":1.384,"2018-10":1.417,"2018-11":1.378,"2018-12":1.297,"2019-01":1.304,"2019-02":1.345,"2019-03":1.362,"2019-04":1.378,"2019-05":1.392,"2019-06":1.333,"2019-07":1.344,"2019-08":1.329,"2019-09":1.366,"2019-10":1.369,"2019-11":1.369,"2019-12":1.386,"2020-01":1.413,"2020-02":1.359,"2020-03":1.268,"2020-04":1.224,"2020-05":1.196,"2020-06":1.202,"2020-07":1.219,"2020-08":1.207,"2020-09":1.167,"2020-10":1.172,"2020-11":1.185,"2020-12":1.233,"2021-01":1.289,"2021-02":1.354,"2021-03":1.392,"2021-04":1.387,"2021-05":1.409,"2021-06":1.44,"2021-07":1.463,"2021-08":1.457,"2021-09":1.489,"2021-10":1.608,"2021-11":1.638,"2021-12":1.601,"2022-01":1.666,"2022-02":1.744,"2022-03":2.118,"2022-04":2.002,"2022-05":1.993,"2022-06":2.143,"2022-07":2.068,"2022-08":1.974,"2022-09":1.999,"2022-10":2.076,"2022-11":1.925,"2022-12":1.751,"2023-01":1.784,"2023-02":1.689,"2023-03":1.632,"2023-04":1.587,"2023-05":1.502,"2023-06":1.52,"2023-07":1.668,"2023-08":1.815,"2023-09":1.913,"2023-10":1.893,"2023-11":1.814,"2023-12":1.726,"2024-01":1.736,"2024-02":1.809,"2024-03":1.796,"2024-04":1.805,"2024-05":1.726,"2024-06":1.706,"2024-07":1.732,"2024-08":1.674,"2024-09":1.608,"2024-10":1.64,"2024-11":1.716,"2024-12":1.726,"2025-01":1.754,"2025-02":1.742,"2025-03":1.679,"2025-04":1.626,"2025-05":1.597,"2025-06":1.654,"2025-07":1.697,"2025-08":1.673,"2025-09":1.703,"2025-10":1.702,"2025-11":1.769,"2025-12":1.705,"2026-01":1.801,"2026-02":1.834,"2026-03":2.294,"2026-04":2.412,"2026-05":2.283,"2026-06":2.083,"2026-07":2.231,"2026-08":2.369},"provinces":{"Zuid-Holland":185,"Noord-Brabant":116,"Limburg":95,"Noord-Holland":92,"Gelderland":79,"Overijssel":71,"Utrecht":62,"Drenthe":41,"Groningen":34,"Zeeland":33,"Friesland":23,"Flevoland":19},"cities":{"Amsterdam":35,"Rotterdam":32,"Middelburg":24,"'s-Gravenhage":22,"Arnhem":16,"Tilburg":14,"Maastricht":12,"Zoetermeer":11,"Almere":11,"Zwolle":10,"Utrecht":10,"Groningen":10,"Enschede":10,"Emmen":10,"Apeldoorn":10,"Breda":9,"Haarlem":8,"Barendrecht":8,"Rijswijk":8,"Almelo":8,"Eindhoven":8,"Dordrecht":8,"Hoofddorp":7,"Drachten":7,"Purmerend":7,"Roermond":6,"Kerkrade":6,"Schiphol-Rijk":6,"Meerssen":5,"'s-Hertogenbosch":5},"legalform":{"BV":597,"Eenmanszaak":126,"VOF":120,"CV":11,"Overig/Onbekend":10,"Buitenlands":2},"subbranches":[{"code":"4941","n":499,"label":"Goederenvervoer over weg (geen verhuiz"},{"code":"49410","n":144,"label":"Goederenvervoer over de weg (met uitzondering van verhuisbedrijven)"},{"code":"4932","n":121,"label":"Vervoer per taxi"},{"code":"49330","n":27,"label":"Personenvervoer op aanvraag per voertuig met chauffeur"},{"code":"4942","n":21,"label":"Verhuisvervoer"},{"code":"49391","n":18,"label":"Ongeregeld personenvervoer over de weg"},{"code":"49392","n":12,"label":"Openb"},{"code":"49420","n":6,"label":"Activiteiten van verhuisbedrijven"},{"code":"49320","n":3,"label":"Personenvervoer over de weg zonder dienstregeling"},{"code":"49393","n":3,"label":"Geregeld besloten pers"}],"corr":{"cbs_vs_diesel":-0.302,"site_vs_diesel":0.73}};
+
+/* ---------- tiny SVG chart engine (no dependencies) ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const tt = document.getElementById('tt');
+function bindTip(node, html) {
+  node.addEventListener('mousemove', ev => {
+    tt.innerHTML = html; tt.style.opacity = 1;
+    tt.style.left = Math.min(ev.clientX + 14, window.innerWidth - 190) + 'px';
+    tt.style.top = (ev.clientY - 34) + 'px';
+  });
+  node.addEventListener('mouseleave', () => tt.style.opacity = 0);
+}
+function fmt(n, d = 0) { return n == null ? '–' : Number(n).toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+
+function axes(svg, o) {
+  const { x0, y0, x1, y1, yMin, yMax, y2Min, y2Max, labels, yFmt, y2Fmt, y2 } = o;
+  const g = el('g');
+  for (let i = 0; i <= 4; i++) {
+    const y = y0 - (y0 - y1) * i / 4;
+    g.appendChild(el('line', { x1: x0, y1: y, x2: x1, y2: y, stroke: '#1c2836', 'stroke-width': 1 }));
+    const t = el('text', { x: x0 - 9, y: y + 4, fill: '#8b9cad', 'font-size': 13, 'text-anchor': 'end' });
+    t.textContent = yFmt(yMin + (yMax - yMin) * i / 4); g.appendChild(t);
+    if (y2) {
+      const t2 = el('text', { x: x1 + 9, y: y + 4, fill: '#ffb703', 'font-size': 13, 'text-anchor': 'start' });
+      t2.textContent = y2Fmt(y2Min + (y2Max - y2Min) * i / 4); g.appendChild(t2);
+    }
+  }
+  const step = Math.max(1, Math.ceil(labels.length / 14));
+  labels.forEach((lb, i) => {
+    if (i % step) return;
+    const x = x0 + (x1 - x0) * (labels.length === 1 ? .5 : i / (labels.length - 1));
+    const t = el('text', { x, y: y0 + 20, fill: '#8b9cad', 'font-size': 12.5, 'text-anchor': 'middle' });
+    t.textContent = lb; g.appendChild(t);
+  });
+  svg.appendChild(g);
+}
+
+function comboChart(id, o) {
+  const svg = document.getElementById(id); svg.innerHTML = '';
+  const W = 1000, H = 380, m = { l: 62, r: o.bars2 ? 68 : 24, t: 16, b: 42 };
+  const x0 = m.l, x1 = W - m.r, y0 = H - m.b, y1 = m.t;
+  const vals = o.bars.flat(), lvals = (o.line || []).filter(v => v != null);
+  const yMax = o.yMax ?? Math.max(...vals, 1) * 1.12;
+  const lMin = Math.min(...lvals), lMax = Math.max(...lvals);
+  const pad = (lMax - lMin) * .18 || 1;
+  axes(svg, { x0, y0, x1, y1, yMin: 0, yMax, yFmt: v => fmt(v), labels: o.labels,
+              y2: o.line, y2Min: lMin - pad, y2Max: lMax + pad, y2Fmt: v => '€' + v.toFixed(2) });
+  const n = o.bars.length, bw = (x1 - x0) / n;
+  o.bars.forEach((stack, i) => {
+    let acc = 0;
+    const cx = x0 + bw * i + bw / 2;
+    o.series.forEach((s, si) => {
+      const v = s.data[i] || 0; if (!v) { return; }
+      const h = (y0 - y1) * (v / yMax);
+      const y = y0 - (y0 - y1) * ((acc + v) / yMax);
+      const r = el('rect', { x: cx - bw * .34, y, width: bw * .68, height: Math.max(h, 1), fill: s.color, rx: 2 });
+      bindTip(r, `<b>${o.labels[i]}</b><br>${s.name}: ${fmt(v)}<br>Totaal: ${fmt(stack)}`);
+      svg.appendChild(r); acc += v;
+    });
+  });
+  if (o.line) {
+    const pts = o.line.map((v, i) => v == null ? null : [x0 + (x1 - x0) * i / (n - 1), y0 - (y0 - y1) * (v - (lMin - pad)) / ((lMax + pad) - (lMin - pad))]).filter(Boolean);
+    svg.appendChild(el('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: '#ffb703', 'stroke-width': 2.6, 'stroke-linejoin': 'round' }));
+    pts.forEach((p, i) => {
+      const c = el('circle', { cx: p[0], cy: p[1], r: 3.6, fill: '#0b0f14', stroke: '#ffb703', 'stroke-width': 2 });
+      bindTip(c, `<b>${o.labels[i]}</b><br>Diesel: €${o.line[i].toFixed(3)}/l`); svg.appendChild(c);
+    });
+  }
+}
+
+function hBarChart(id, rows, colorFn, tipUnit = '') {
+  const svg = document.getElementById(id); svg.innerHTML = '';
+  const W = 1000, rowH = Math.min(30, 400 / rows.length), m = { l: 190, r: 60, t: 8, b: 8 };
+  const max = Math.max(...rows.map(r => r[1]), 1);
+  svg.setAttribute('viewBox', `0 0 ${W} ${rows.length * rowH + m.t + m.b}`);
+  rows.forEach((r, i) => {
+    const y = m.t + i * rowH, w = (W - m.l - m.r) * (r[1] / max);
+    const bar = el('rect', { x: m.l, y: y + 3, width: Math.max(w, 2), height: rowH - 9, rx: 3, fill: colorFn(r[1], max) });
+    bindTip(bar, `<b>${r[0]}</b><br>${fmt(r[1])}${tipUnit}`); svg.appendChild(bar);
+    const lab = el('text', { x: m.l - 10, y: y + rowH / 2 + 5, fill: '#c3d0dc', 'font-size': 13.5, 'text-anchor': 'end' });
+    lab.textContent = r[0]; svg.appendChild(lab);
+    const val = el('text', { x: m.l + w + 9, y: y + rowH / 2 + 5, fill: '#8b9cad', 'font-size': 13 });
+    val.textContent = fmt(r[1]) + tipUnit; svg.appendChild(val);
+  });
+}
+
+function stackedBarChart(id, o) {
+  comboChart(id, { labels: o.labels, bars: o.stacks, series: o.series, yMax: o.yMax });
+}
+
+/* ---------- render ---------- */
+const PROV_ORDER = ["Zuid-Holland","Noord-Brabant","Limburg","Noord-Holland","Gelderland","Overijssel","Utrecht","Drenthe","Groningen","Zeeland","Friesland","Flevoland"];
+let annualMode = 'cbs';
+
+function cbsYears() { return Object.keys(DATA.cbs_annual).sort(); }
+
+function drawAnnual() {
+  const yrs = annualMode === 'cbs' ? cbsYears()
+    : DATA.site_annual.map(s => s.year).filter(y => +y >= 2009);
+  const labels = yrs, diesel = yrs.map(y => DATA.diesel_annual[y] ?? null);
+  let bars, series;
+  if (annualMode === 'cbs') {
+    bars = yrs.map(y => [DATA.cbs_annual[y].total || 0]);
+    series = [{ name: 'Faillietverklaringen (CBS, officieel)', color: '#4cc9f0', data: yrs.map(y => DATA.cbs_annual[y].total || 0) }];
+  } else {
+    bars = yrs.map(y => { const s = DATA.site_annual.find(z => z.year === y) || {}; return [s.n || 0]; });
+    series = [{ name: 'Faillietverklaringen (faillissementen.com)', color: '#9d4edd', data: bars.map(b => b[0]) }];
+  }
+  comboChart('cAnnual', { labels, bars, series, line: diesel });
+  document.getElementById('legAnnual').innerHTML =
+    `<span><i style="background:${series[0].color}"></i>${series[0].name}</span>
+     <span><i style="background:#ffb703"></i>Dieselprijs (€/liter, rechteras)</span>
+     <span>Pearson r = <b>${annualMode === 'cbs' ? DATA.corr.cbs_vs_diesel : DATA.corr.site_vs_diesel}</b></span>`;
+  document.getElementById('annualNote').textContent = annualMode === 'cbs'
+    ? 'CBS officiële reeks (uitgesproken faillissementen) — de volledige populatie'
+    : 'faillissementen.com openbaar archief — let op: onvolledige dekking (zie datakwaliteit hieronder)';
+}
+
+function drawSize() {
+  const yrs = cbsYears();
+  const ea = yrs.map(y => DATA.cbs_annual[y].ea || 0);
+  const gr = yrs.map(y => DATA.cbs_annual[y].bedrijven || 0);
+  stackedBarChart('cSize', {
+    labels: yrs,
+    stacks: yrs.map((y, i) => [ea[i], gr[i]]),
+    series: [
+      { name: 'Natuurlijke personen met eenmanszaak', color: '#43aa8b', data: ea },
+      { name: 'Bedrijven en instellingen', color: '#4cc9f0', data: gr }
+    ]
+  });
+  document.getElementById('legSize').innerHTML =
+    `<span><i style="background:#43aa8b"></i>Eenmanszaak (MKB)</span>
+     <span><i style="background:#4cc9f0"></i>Bedrijven &amp; instellingen (groter)</span>`;
+}
+
+function drawProv() {
+  const rows = PROV_ORDER.filter(p => DATA.provinces[p]).map(p => [p, DATA.provinces[p]]);
+  const hi = Math.max(...rows.map(r => r[1]));
+  hBarChart('cProv', rows, (v, max) => {
+    const t = v / max;
+    const a = [76, 201, 240], b = [247, 37, 133];
+    const c = a.map((x, i) => Math.round(x + (b[i] - x) * t));
+    return `rgb(${c.join(',')})`;
+  }, ' faillissementen');
+}
+
+function drawCity() {
+  const rows = Object.entries(DATA.cities).slice(0, 15).map(([k, v]) => [k, v]);
+  hBarChart('cCity', rows, () => '#4cc9f0', '');
+}
+
+function drawSub() {
+  const rows = DATA.subbranches.map(s => [`${s.code} ${s.label}`.slice(0, 34), s.n]);
+  hBarChart('cSub', rows, (v, max) => {
+    const t = v / max, a = [157, 78, 221], b = [76, 201, 240];
+    const c = a.map((x, i) => Math.round(x + (b[i] - x) * t));
+    return `rgb(${c.join(',')})`;
+  }, '');
+}
+
+function drawMonth() {
+  const keys = Object.keys(DATA.cbs_monthly).sort();
+  const labels = keys.map(k => k.slice(2));
+  const vals = keys.map(k => DATA.cbs_monthly[k].total || 0);
+  const diesel = keys.map(k => DATA.diesel_monthly[k] ?? null);
+  comboChart('cMonth', {
+    labels, bars: vals.map(v => [v]),
+    series: [{ name: 'Faillissementen', color: '#f72585', data: vals }],
+    line: diesel
+  });
+}
+
+function kpis() {
+  const y25 = DATA.cbs_annual['2025'] ? DATA.cbs_annual['2025'].total : null;
+  const y24 = DATA.cbs_annual['2024'] ? DATA.cbs_annual['2024'].total : null;
+  const ytd = Object.keys(DATA.cbs_monthly).filter(k => k.startsWith('2026')).reduce((s, k) => s + (DATA.cbs_monthly[k].total || 0), 0);
+  const dnow = Object.keys(DATA.diesel_monthly).sort().slice(-1).map(k => DATA.diesel_monthly[k])[0];
+  const growth = (y25 && y24) ? ((y25 - y24) / y24 * 100) : null;
+  const cards = [
+    ['Faillietverklaringen 2025', fmt(y25), 'CBS, SBI 49 — officieel'],
+    ['t.o.v. 2024', (growth > 0 ? '+' : '') + fmt(growth, 1) + '%', `2024: ${fmt(y24)}`],
+    ['2026 t/m augustus', fmt(ytd), 'CBS, lopend jaar'],
+    ['Gemiddelde dieselprijs', '€' + (dnow ? dnow.toFixed(3) : '–'), 'CBS pompprijs, meest recente maand'],
+    ['Records faillissementen.com', fmt(DATA.meta.site_total), `${DATA.meta.site_first} – ${DATA.meta.site_last}`],
+  ];
+  document.getElementById('kpis').innerHTML = cards.map(c =>
+    `<div class="kpi"><div class="l">${c[0]}</div><div class="v">${c[1]}</div><div class="n">${c[2]}</div></div>`).join('');
+}
+
+function quality() {
+  const yrs = cbsYears();
+  const cmp = yrs.map(y => {
+    const s = DATA.site_annual.find(z => z.year === y);
+    return s ? Math.round(s.n / (DATA.cbs_annual[y].total || 1) * 100) : null;
+  }).filter(v => v != null);
+  const avg = Math.round(cmp.reduce((a, b) => a + b, 0) / cmp.length);
+  document.getElementById('quality').innerHTML = `
+    <b>Datakwaliteit &amp; methode — belangrijk om te weten</b><br>
+    1. <b>Alleen faillietverklaringen.</b> Er is gefilterd op status <i>Faillissement</i>; surseances van betaling en
+       schuldsaneringen (WSNP) zijn uitgesloten, zodat er geen dubbeltellingen ontstaan.<br>
+    2. <b>faillissementen.com is niet compleet.</b> Het openbare archief van de site bevat circa
+       <b>${fmt(DATA.meta.site_total)}</b> zaken voor branche 49 over de hele periode, terwijl CBS voor dezelfde
+       periode (2009–2025) een veelvoud registreert. Gemiddeld dekt de site ongeveer <b>${avg}%</b> van het officiële aantal.
+       Gebruik de CBS-reeks voor aantallen en de site-data voor <i>locatie en rechtsvorm</i>.<br>
+    3. <b>Provincie</b> is afgeleid uit de postcode (4-cijferige reeksen) — aan provinciegrenzen kan dit enkele
+       gevallen missen; 16 van ${fmt(DATA.meta.site_total)} zaken hadden geen bruikbare postcode.<br>
+    4. <b>MKB vs. groot</b> is een proxy: eenmanszaak/VOF/CV aan de ene kant, BV/NV aan de andere kant.
+       Een BV is niet automatisch "groot" — het is een rechtsvorm, geen omvang.<br>
+    5. <b>KVK-koppeling</b> is niet uitgevoerd: er is geen KVK-API-sleutel beschikbaar, en KVK levert geen
+       vrije bulkdata. CBS levert wél de officiële splitsing eenmanszaak vs. bedrijven.<br>
+    6. <b>Correlatie ≠ causaliteit.</b> De dieselprijs en het aantal faillissementen bewegen samen, maar
+       conjunctuur, rente, loonkosten en de coronasteun (2020–2021) spelen een minstens zo grote rol.`;
+  document.getElementById('foot').innerHTML =
+    `Bronnen: faillissementen.com (filter status=Faillissement, branche 49) · CBS dataset 82244NED “Uitgesproken faillissementen” ·
+     CBS dataset 81567NED “Gemiddelde pompprijs diesel”. Gegenereerd op ${DATA.meta.generated}.
+     Alle bedragen in euro, prijzen inclusief accijns en btw.`;
+}
+
+/* ---------- controls ---------- */
+const btns = document.getElementById('annualBtns');
+btns.innerHTML = `<button data-m="cbs" class="on">CBS (officieel)</button>
+                  <button data-m="site">faillissementen.com</button>`;
+btns.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  annualMode = b.dataset.m;
+  btns.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  drawAnnual();
+}));
+
+/* ---------- init ---------- */
+window.addEventListener('resize', () => { drawAnnual(); drawSize(); drawProv(); drawCity(); drawSub(); drawMonth(); });
+kpis(); drawAnnual(); drawSize(); drawProv(); drawCity(); drawSub(); drawMonth(); quality();
+</script>
+</body>
+</html>
