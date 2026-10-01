@@ -166,8 +166,7 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   rate-limit de box-IP nog (HTTP 200 + 50-byte `5) Limit reached`-stub). De 111 afgekapte namen kunnen
   dus nog niet hersteld worden; `reharvest_names.py` staat klaar en faalt hard op stubs. Doseer na cooldown.
 - **CBS is de bron voor alle aantallen**; de site alleen voor detail op zaakniveau.
-- **Openstaand: VPN-tunnel opruimen.** `wg-proton` staat nog **up** met `149.210.216.126/32` via de
-  tunnel, waardoor de site ook na een eventuele ban-opheffing onbereikbaar blijft. Opruimen
-  (`wg-quick down wg-proton` + route weg) is een routewijziging -> approval gate.
+- **VPN-tunnel OPGERUIMD (2026-10-01).** `wg-quick down wg-proton` uitgevoerd; `ip route` is schoon en de
+  site is direct weer bereikbaar (nog wel de ban-stub, want de ban op het box-IP staat nog).
 - **Officiele historie op zaakniveau bestaat niet open** (zie de pivot-sectie). Wel: `cir_harvest.py`
   dagelijks draaien om vanaf nu zelf een officieel archief op te bouwen.
