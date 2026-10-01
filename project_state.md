@@ -22,6 +22,19 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   jaar 2009–2025 + maand 2009-01 → 2026-08. Splitsing A028820 (eenmanszaak) / A047597 (bedrijven).
 - **CBS 81567NED** dieselpompprijs: maatstaf D002209 + motorbrandstof A047219, maand 2006-01 → 2026-08.
 
+## Excel-export
+- Nextcloud: `nextcloud:projects/faillissementen-wegvervoer/faillissementen_sbi49_data.xlsx`
+  (142.498 bytes, md5 `4945e86f5624ac10f21638224c143dd1`) — lokaal in `data/`.
+- 11 sheets: Toelichting · Faillissementen (866 rijen, A1:P867, autofilter) · Site vs CBS ·
+  CBS jaar · CBS maand · Dieselprijs · Dieselprijs jaar · Provincies · Top 30 plaatsen ·
+  Rechtsvormen · Site per jaar. 4 grafieken, `full_calc_on_load`.
+- Bouw: spec `~/.hermes/cache/scratch/workbook_spec.json`, script `skill xlsx/scripts/xlsx_create.py`,
+  verificatie `verify2.py` (mojibake-scan, tellingen, formules).
+- **`rv_bucket` is het betrouwbare rechtsvorm-veld**; `rv_clean` is rommelig (kapitalisatievarianten,
+  afgekapte waarden). Gebruik altijd de bucket voor de MKB/groot-indeling, nooit rv_clean.
+- Mojibake (30 curatornamen, enkele plaatsen) bij export hersteld via latin-1→utf-8.
+- Let op: de opstart-kernel van execute_code heeft GÉÉN openpyxl — draai skill-scripts via `terminal`.
+
 ## Key findings
 - **faillissementen.com is onvolledig (~40%)**: site 866 over 2005–2026 vs CBS 2009–2025 veelvoud.
   Voorbeelden: 2024 site 80 / CBS 185; 2012 site 79 / CBS 285. → CBS = aantallen, site = locatie/rechtsvorm.
@@ -40,6 +53,9 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
 - Reproductie/verificatie: `chromium --headless=new --virtual-time-budget=9000 --dump-dom <url>` en tel `<rect>`/`<polyline>`.
 
 ## Open / optioneel
+- **Drift met Nextcloud (nog te doen):** `README.md` op Nextcloud is een oudere, hard-wrapped versie
+  (3.608 vs 3.291 bytes) — inhoud identiek, alleen reflow. Opnieuw uploaden vereist goedkeuring.
+- De xlsx staat lokaal in `data/` maar op Nextcloud in de projectroot; layout gelijk trekken loopt nog.
 - KVK-koppeling ontbreekt (geen API-sleutel, geen vrije bulkdata).
 - Provincie-heatmap is nu een geordende balkengrafiek; echte NL-kaart (GeoJSON) kan later.
 - Detailpagina's van de site worden niet automatisch ververst — herhaal `data/harvest_details.py` voor updates.
