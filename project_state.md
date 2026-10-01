@@ -20,14 +20,22 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   met detailvelden: rechtsvorm, postcode, 5-cijferige SBI, Rechtbank, plaats. `detail_sbi49.json`, 0 errors.
 - **CBS 82244NED** SBI 383200 (= 49 Vervoer over land), maatstaf *Uitgesproken faillissementen* (M001327),
   jaar 2009–2025 + maand 2009-01 → 2026-08. Splitsing A028820 (eenmanszaak) / A047597 (bedrijven).
+  Subsectoren: 491=`383300`, 492=`383500`, 493=`383700`, 494=`384400`. Let op: subsector 494 (goederenvervoer
+  over de weg) is verreweg de grootste; 493 (personenvervoer) is klein.
+- **CBS 82522NED** *Uitgesproken faillissementen* naar regio (TypeGefailleerde × RegioS × maand),
+  maatstaf A047596, provincies `PV20`–`PV31`, jaar 2009–2025 + maand 2009-01 → 2026-08.
+  BELANGRIJK: deze tabel heeft **geen SBI-uitsplitsing** — het zijn alle sectoren. Niet te filteren op wegvervoer.
 - **CBS 81567NED** dieselpompprijs: maatstaf D002209 + motorbrandstof A047219, maand 2006-01 → 2026-08.
 
 ## Excel-export
 - Nextcloud: `nextcloud:projects/faillissementen-wegvervoer/faillissementen_sbi49_data.xlsx`
-  (147.319 bytes, md5 `c5f89f7a34d65ae8e0cee6e7621d4d50`) — lokaal in `data/`.
-- 11 sheets: Toelichting · Faillissementen (866 rijen, **A1:Q867**, autofilter) · Site vs CBS ·
-  CBS jaar · CBS maand · Dieselprijs · Dieselprijs jaar · Provincies · Top 30 plaatsen ·
-  Rechtsvormen · Site per jaar. 4 grafieken, `full_calc_on_load`.
+  (169.908 bytes, md5 `cb5cc1cbe3f752e71d6d3ae01ac9d884`) — lokaal in `data/`; read-back byte-identiek.
+- 14 sheets: Toelichting · Faillissementen (866 rijen, **A1:Q867**, autofilter) · Site vs CBS ·
+  CBS jaar · CBS maand · **CBS 82244NED subsectoren** · **CBS 82522NED regio jaar** ·
+  **CBS 82522NED regio maand** · Dieselprijs · Dieselprijs jaar · Provincies · Top 30 plaatsen ·
+  Rechtsvormen · Site per jaar. 6 grafieken, `full_calc_on_load`.
+- Nieuwe CBS-bladzijden (2026-10-01): subsectoren jaar 2009-2025 + 2026 (t/m aug, voorlopig);
+  regio jaar = provincies als rijen, recentste jaar eerst, + totaal 2009-2025; regio maand = 212 maanden × 12 provincies + NL.
 - Bouw: spec `~/.hermes/cache/scratch/workbook_spec.json`, script `skill xlsx/scripts/xlsx_create.py`,
   verificatie `verify2.py` (mojibake-scan, tellingen, formules).
 - **`rv_bucket` is het betrouwbare rechtsvorm-veld**; `rv_clean` is rommelig (kapitalisatievarianten,
@@ -58,11 +66,35 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   plaats/adres; behoudt sbi5/rechtsvorm/provincie). Draai pas na cooldown.
 
 ## Key findings
-- **faillissementen.com is onvolledig (~40%)**: site 866 over 2005–2026 vs CBS 2009–2025 veelvoud.
-  Voorbeelden: 2024 site 80 / CBS 185; 2012 site 79 / CBS 285. → CBS = aantallen, site = locatie/rechtsvorm.
+- **faillissementen.com is onvolledig, en de dekking hangt sterk van de leeftijd af.**
+  Op dezelfde filter (SBI 49): CBS 2.946 over 2009-2026 vs site 866. Dekking site/CBS:
+  2020-2022 **28-30%**, 2023-2024 **42-43%**, 2025 **82%**, 2026 **176%**.
+  Het site-archief is dus alleen voor de recentste maanden ongeveer compleet; in de recentste
+  maanden is de site juist BREDER dan CBS. → CBS = aantallen/trends, site = detail op zaakniveau.
+- **Het site-bestand bevat dubbeltellingen**: 82 KvK-nummers komen >1× voor = 105 extra regels.
+  CBS controleert expliciet op dubbelgetelde faillissementen; de site publiceert per publicatie/entiteit.
+- **Site-maandcijfers lopen tot 2 maanden voor op CBS** en schommelen t.o.v. CBS tussen 20% en 267%.
 - 2025: 142 faillissementen (2024: 185, −23%). 2026 t/m aug: 102.
-- Pearson r ≈ −0,30 (CBS jaarbasis) — dieselprijs alleen verklaart het patroon NIET.
+- Pearson r op jaarbasis (volledige jaren): site-reeks **+0,60** (n=20), CBS-reeks **−0,30** (n=17).
+  Het tekenverschil komt door de onvolledige, niet-gelijkmatige dekking van het site-archief —
+  gebruik voor correlaties de CBS-reeks. Dieselprijs alleen verklaart het patroon NIET.
 - Provincies: Zuid-Holland 185, Noord-Brabant 116, Limburg 95, Noord-Holland 92.
+
+## Waarom CBS en faillissementen.com verschillen (bewezen, 2026-10-01)
+- **CBS = integrale waarneming.** De Nederlandse rechtbanken leveren dagelijks elektronisch ALLE
+  uitgesproken faillissementen aan CBS. CBS codeert de bedrijfstak volgens de SBI, verrijkt de
+  database met het ABR via KvK-nummers en controleert expliciet op ontbrekende gegevens en
+  **dubbelgetelde faillissementen**. Elk faillissement komt **1x** voor, in de maand van de uitspraak.
+  Maandelijks gepubliceerd ca. 2 weken na de verslagmaand; de **laatste twee maanden zijn voorlopig**
+  en worden bijgesteld. Rechtbanken spreken meestal op vaste dagen uit (dinsdag) -> 4 of 5
+  zittingsdagen per maand; daarom publiceert CBS ook een **zittingsdaggecorrigeerde reeks (83085NED)**.
+- **faillissementen.com = commercieel register** (Dordrecht), publiceert dagelijks nieuwe uitspraken.
+  Het gratis openbare archief is niet gegarandeerd historisch volledig; de complete, op branche
+  gecodeerde dataset wordt als **betaalde dataservice** geleverd (CSV/XML/JSON, web service, alerts).
+- **Netto:** de twee meten niet dezelfde populatie. In oudere jaren mist het site-archief 57-72% van
+  de uitspraken; in de recentste maanden is de site juist breder dan CBS (vermoedelijk doordat de site
+  op meerdere branchecoderingen matcht en per publicatie telt i.p.v. per faillissement).
+  Dit is een **hypothese** voor het recente overschot; het tekort in oudere jaren is **bewezen**.
 
 ## Gotchas / lessons
 - **CBS maandperioden** zijn `YYYYMMnn` — de maand staat op positie 6-7 (`p[6:8]`), NIET `p[4:6]` (dat is de letterlijke "MM").
@@ -81,3 +113,7 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
 - KVK-koppeling ontbreekt (geen API-sleutel, geen vrije bulkdata).
 - Provincie-heatmap is nu een geordende balkengrafiek; echte NL-kaart (GeoJSON) kan later.
 - Detailpagina's van de site worden niet automatisch ververst — herhaal `data/harvest_details.py` voor updates.
+- **Volledige her-download van faillissementen.com nog steeds geblokkeerd** (2026-10-01 12:36): de site
+  rate-limit de box-IP nog (HTTP 200 + 50-byte `5) Limit reached`-stub). De 111 afgekapte namen kunnen
+  dus nog niet hersteld worden; `reharvest_names.py` staat klaar en faalt hard op stubs. Doseer na cooldown.
+- **CBS is de bron voor alle aantallen**; de site alleen voor detail op zaakniveau.
