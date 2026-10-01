@@ -96,6 +96,25 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   op meerdere branchecoderingen matcht en per publicatie telt i.p.v. per faillissement).
   Dit is een **hypothese** voor het recente overschot; het tekort in oudere jaren is **bewezen**.
 
+## Blokkade faillissementen.com (2026-10-01, 12:40) - OPEN
+- De site heeft het box-IP **volledig geband**: ook de homepage geeft HTTP 200 met een ~50-byte
+  body `5) Limit reached, contact info@faillissementen.com`. Geen detailpagina's meer, geen zoekacties.
+- **Geen user-agent-probleem**: bewezen met een echte headless Chromium (zelfde stub). Het is IP-based.
+- Gevolg: de **111 afgekapte bedrijfsnamen kunnen niet hersteld worden** zolang de ban staat, en een
+  volledige her-download is onmogelijk. De bestaande 866 records + `records.json` staan wel op Nextcloud.
+- **ProtonVPN-tunnel (door boss goedgekeurd):** `/etc/wireguard/wg-proton.conf` (NL-FREE#15),
+  AllowedIPs bewust beperkt tot `149.210.216.126/32` (alleen de site loopt via de tunnel; rest ongewijzigd).
+  Tunnel komt op en de handshake lukt (92 B ontvangen), maar **er stroomt geen data**: TCP :443 via de
+  tunnel faalt, ping naar 10.2.0.1 100% loss. Oorzaak nog onbekend: (a) tunnel kapot of
+  (b) site blokkeert VPN/datacenter-IP's.
+- **Diagnose wacht op goedkeuring:** een neutrale bestemming (1.1.1.1) door dezelfde tunnel routeren.
+  Dat is een `wg set` + `ip route replace` = routewijziging -> approval gate -> timed out. NIET opnieuw
+  geprobeerd. Eerst boss laten beslissen.
+- **Open en ongebonden alternatieven** (allemaal HTTP 200): `insolventies.rechtspraak.nl` (Centraal
+  Insolventieregister), `officielebekendmakingen.nl`, en de Staatscourant SRU-API
+  (`https://repository.overheid.nl/sru`, XML). Dit is dezelfde bron als waar de site zijn data haalt.
+- Let op: **boss koos expliciet voor de ProtonVPN-route**, niet voor de officiele bronnen.
+
 ## Gotchas / lessons
 - **CBS maandperioden** zijn `YYYYMMnn` — de maand staat op positie 6-7 (`p[6:8]`), NIET `p[4:6]` (dat is de letterlijke "MM").
 - **`82244NED/Observations`** levert >100k rijen gepagineerd; filter met `$filter=BedrijfstakkenBranchesSBI2008 eq '383200'`.
