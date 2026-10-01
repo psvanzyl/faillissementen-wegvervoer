@@ -1,0 +1,19 @@
+{
+ "natuurlijkpersoon": "Services/WebInsolventieService/zoekOpNatuurlijkpersoon",
+ "rechtspersoon": "Services/WebInsolventieService/zoekOpRechtspersoon",
+ "kenmerk": "Services/WebInsolventieService/zoekOpKenmerk",
+ "bijgewerktTot": "Services/BekendmakingenService/bijgewerktTot",
+ "menu": "menu/menu.html",
+ "details": "Services/WebInsolventieService/haalOp",
+ "findVerslagen": "Services/VerslagenService/findGoedgekeurdeVerslagen",
+ "getBekendmakingen": "Services/BekendmakingenService/getAll/",
+ "bekendmaking": "Services/BekendmakingenService/haalOp",
+ "zoekenXml": "ContentBlocks/CIR.zoeken.xml",
+ "resultatenXml": "ContentBlocks/CIR.resultaat.xml",
+ "detailXml": "ContentBlocks/CIR.detail.xml",
+ "bekendmakingenXml": "ContentBlocks/CIR.bekendmakingen.xml",
+ "bekendmakingenDetailXml": "ContentBlocks/CIR.bekendmakingen.detail.xml",
+ "vraagOp": "Services/WebInsolventieService/VraagOp",
+ "registratie": "Services/WebInsolventieService/Registreer",
+ "reset": "Services/WebInsolventieService/Reset"
+}

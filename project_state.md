@@ -96,24 +96,54 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   op meerdere branchecoderingen matcht en per publicatie telt i.p.v. per faillissement).
   Dit is een **hypothese** voor het recente overschot; het tekort in oudere jaren is **bewezen**.
 
-## Blokkade faillissementen.com (2026-10-01, 12:40) - OPEN
+## Blokkade faillissementen.com (2026-10-01) - OPGELOST: bypass mislukt, gepivoteerd
 - De site heeft het box-IP **volledig geband**: ook de homepage geeft HTTP 200 met een ~50-byte
   body `5) Limit reached, contact info@faillissementen.com`. Geen detailpagina's meer, geen zoekacties.
 - **Geen user-agent-probleem**: bewezen met een echte headless Chromium (zelfde stub). Het is IP-based.
 - Gevolg: de **111 afgekapte bedrijfsnamen kunnen niet hersteld worden** zolang de ban staat, en een
   volledige her-download is onmogelijk. De bestaande 866 records + `records.json` staan wel op Nextcloud.
-- **ProtonVPN-tunnel (door boss goedgekeurd):** `/etc/wireguard/wg-proton.conf` (NL-FREE#15),
-  AllowedIPs bewust beperkt tot `149.210.216.126/32` (alleen de site loopt via de tunnel; rest ongewijzigd).
-  Tunnel komt op en de handshake lukt (92 B ontvangen), maar **er stroomt geen data**: TCP :443 via de
-  tunnel faalt, ping naar 10.2.0.1 100% loss. Oorzaak nog onbekend: (a) tunnel kapot of
-  (b) site blokkeert VPN/datacenter-IP's.
-- **Diagnose wacht op goedkeuring:** een neutrale bestemming (1.1.1.1) door dezelfde tunnel routeren.
-  Dat is een `wg set` + `ip route replace` = routewijziging -> approval gate -> timed out. NIET opnieuw
-  geprobeerd. Eerst boss laten beslissen.
-- **Open en ongebonden alternatieven** (allemaal HTTP 200): `insolventies.rechtspraak.nl` (Centraal
-  Insolventieregister), `officielebekendmakingen.nl`, en de Staatscourant SRU-API
-  (`https://repository.overheid.nl/sru`, XML). Dit is dezelfde bron als waar de site zijn data haalt.
-- Let op: **boss koos expliciet voor de ProtonVPN-route**, niet voor de officiele bronnen.
+- **ProtonVPN-bypass: GEPROBEERD EN MISLUKT.** `/etc/wireguard/wg-proton.conf` (NL-FREE#15),
+  AllowedIPs bewust beperkt tot `149.210.216.126/32` (alleen de site liep via de tunnel).
+  Diagnose met een neutrale bestemming door dezelfde tunnel:
+  - **1.1.1.1 (Cloudflare) via de tunnel = HTTP 301 -> de tunnel WERKT**, alleen traag
+    (~12,5 s vs 0,064 s direct).
+  - **De site zelf via de tunnel = 0 bytes in 120 s**, terwijl hij direct gewoon antwoordt.
+  - **Conclusie: de site blokkeert VPN/datacenter-IP's**, niet alleen het box-IP. De tunnel was nooit
+    kapot. Elke andere Proton-endpoint zou net zo goed falen — een VPN-bypass is dus een dood spoor.
+- **Boss besloot daarna te pivoten** naar de officiele bronnen (zie de sectie hieronder).
+
+## Officiele bronnen na de pivot (2026-10-01, onderzocht)
+
+### Centraal Insolventieregister — publieke JSON-API ONTDEKT
+- De Angular-bundle van `insolventies.rechtspraak.nl` bevat de endpoint-map; de CIR heeft een **open,
+  onbeveiligde JSON-API**: `https://insolventies.rechtspraak.nl/Services/BekendmakingenService/`
+  - `getAll/` -> lijst van publicatiedagen, bv. `[{"Id":"20260901000000","Datum":"\/Date(1788213600000)\/"}]`
+  - `haalOp/<Id>` -> alle publicaties van die dag: rechtbank -> publicatiecluster -> publicatiesoort -> vrije-tekstberichten
+  - ook aanwezig: `WebInsolventieService/zoekOpKenmerk`, `zoekOpRechtspersoon`, `VerslagenService/...`
+- **Harde beperking:** alleen een **rollende ~1 maand**. Oudere dag-Ids (`20200102000000`, `20050103000000`)
+  geven een **leeg antwoord** (51 bytes). De CIR bewaart een zaak slechts tot **6 maanden NA beeindiging**.
+  -> De CIR is een actueel register, **GEEN archief**.
+- **Geen SBI-codes** in de feed. Filteren op wegvervoer (SBI 49) kan alleen via KvK-verrijking (betaald).
+- Wel bruikbaar in de vrije tekst: insolventienummer (`F.13/26/255`), KvK-nummer (1209 van 2256 records),
+  adres/plaats, rechtbank en uitspraakdatum.
+- **Oogst 2026-10-01:** 23 publicatiedagen, **2256 publicaties**, waarvan **575** in de faillissement-clusters
+  (`uitspraken faillissement`, `faillissementen`, `vereenvoudigde afwikkeling faillissementen`).
+- Deliverables op Nextcloud (`projects/faillissementen-wegvervoer/`): `cir_officiele_publicaties.xlsx`
+  (6 bladen, 2 grafieken), `cir_bekendmakingen.csv`, `cir_bekendmakingen_enriched.json`,
+  `cir_bekendmakingen_raw.json` — alle vier read-back **md5-identiek**.
+- Herhaalbaar: `cir_harvest.py` in de repo-root (11,5 s voor de hele window); `--append` om te accumuleren.
+
+### Staatscourant / SRU-API — GEEN zaakniveau
+- `https://repository.overheid.nl/sru` werkt (open XML, `searchRetrieve`), maar bevat **geen individuele
+  faillissementsberichten** meer. Vrije-tekst "faillissement" geeft 69.019 treffers — dat is wetgeving,
+  circulaires en algemene stukken, geen uitspraken.
+
+### Conclusie van de pivot
+- **Er bestaat geen open, officieel, record-level historisch bestand** van faillietverklaringen.
+  De CIR geeft alleen het heden; de Staatscourant heeft ze niet meer. faillissementen.com put uit eigen archief.
+- **Voor historische aantallen is CBS de enige officiele bron** (82244NED nationaal, 82522NED regionaal) —
+  precies wat boss al als voorkeur had.
+- Wil je toch officiele historie op zaakniveau: `cir_harvest.py` dagelijks draaien en laten accumuleren.
 
 ## Gotchas / lessons
 - **CBS maandperioden** zijn `YYYYMMnn` — de maand staat op positie 6-7 (`p[6:8]`), NIET `p[4:6]` (dat is de letterlijke "MM").
@@ -136,3 +166,8 @@ Scratch: /root/.hermes/cache/scratch (index_template.html, index.html, dashboard
   rate-limit de box-IP nog (HTTP 200 + 50-byte `5) Limit reached`-stub). De 111 afgekapte namen kunnen
   dus nog niet hersteld worden; `reharvest_names.py` staat klaar en faalt hard op stubs. Doseer na cooldown.
 - **CBS is de bron voor alle aantallen**; de site alleen voor detail op zaakniveau.
+- **Openstaand: VPN-tunnel opruimen.** `wg-proton` staat nog **up** met `149.210.216.126/32` via de
+  tunnel, waardoor de site ook na een eventuele ban-opheffing onbereikbaar blijft. Opruimen
+  (`wg-quick down wg-proton` + route weg) is een routewijziging -> approval gate.
+- **Officiele historie op zaakniveau bestaat niet open** (zie de pivot-sectie). Wel: `cir_harvest.py`
+  dagelijks draaien om vanaf nu zelf een officieel archief op te bouwen.
