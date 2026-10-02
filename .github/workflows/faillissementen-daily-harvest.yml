@@ -1,0 +1,45 @@
+name: faillissementen-daily-harvest
+
+# Harvests the Centraal Insolventieregister (CIR) 'bekendmakingen' feed every
+# night (GitHub free tier). The CIR only exposes a rolling ~1 month window, so
+# daily runs are exactly the right cadence to accumulate history. The appended
+# records are committed back to main -> Coolify webhook -> auto-deploy.
+#
+# EU-ONLY RULE (boss, 2026-10-02): GitHub Actions runs on US runners, so this
+# job is STRICTLY scrape/parse/merge. It never calls an LLM.
+
+on:
+  schedule:
+    # 03:47 UTC = 05:47 CEST
+    - cron: "47 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: faillissementen-daily-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Harvest CIR rolling window into data/
+        run: python3 cir_harvest.py --append --out data
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "cir-harvest-bot"
+          git config user.email "cir-harvest-bot@users.noreply.github.com"
+          git add data/cir_bekendmakingen_enriched.json data/cir_bekendmakingen_raw.json data/cir_bekendmakingen.csv
+          if git diff --cached --quiet; then
+            echo "no changes - nothing to commit"
+          else
+            git commit -m "daily CIR harvest $(date +%F)"
+            git push
+          fi
